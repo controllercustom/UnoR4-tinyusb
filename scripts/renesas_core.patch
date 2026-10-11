@@ -1,0 +1,87 @@
+# UnoR4-tinyusb renesas_uno core patch
+# Applied with: patch -p1 (Linux/macOS) or patch_renesas_core.windows.ps1 (Windows).
+# Run from the core root, e.g. ~/.arduino15/packages/arduino/hardware/renesas_uno/1.6.0
+#
+# Generated against stock arduino:renesas_uno 1.6.0.
+#
+# Scope: core-file edits only. The TinyUSB sources themselves live in
+# scripts/tinyusb-master/ and are copied over cores/arduino/tinyusb/ by the patch
+# script; the R4-specific RUSB2 HCD fixes are baked into that vendored tree
+# (see scripts/tinyusb-master/PIN), not patched here.
+#
+# What this does:
+#   1. Weakens the five descriptor/ISR callbacks the core owns, so a sketch
+#      (or this library's examples) can override them with its own strong
+#      definition. tud_descriptor_string_cb is included because every
+#      UnoR4TinyUSB-style device example overrides all three descriptor
+#      callbacks plus the string table; without weakening it the example
+#      fails to LINK with "multiple definition".
+#   2. Replaces the deprecated tud_init()/tuh_init() with tusb_rhport_init(),
+#      so the same rhport can be brought up as DEVICE or HOST at runtime.
+--- a/cores/arduino/usb/USB.cpp	2026-10-08 13:01:24.929429383 -1000
++++ b/cores/arduino/usb/USB.cpp	2026-10-08 13:01:24.931723082 -1000
+@@ -72,7 +72,7 @@
+ #define USBD_STR_CDC (0x04)
+ #define USBD_STR_DFU_RT (0x05)
+ 
+-const uint8_t *tud_descriptor_device_cb(void) {
++__attribute__((weak)) const uint8_t *tud_descriptor_device_cb(void) {
+     static tusb_desc_device_t usbd_desc_device = {
+         .bLength = sizeof(tusb_desc_device_t),
+         .bDescriptorType = TUSB_DESC_DEVICE,
+@@ -100,7 +100,7 @@
+ // Invoked when received GET HID REPORT DESCRIPTOR
+ // Application return pointer to descriptor
+ // Descriptor contents must exist long enough for transfer to complete
+-uint8_t const * tud_hid_descriptor_report_cb(uint8_t instance) {
++__attribute__((weak)) uint8_t const * tud_hid_descriptor_report_cb(uint8_t instance) {
+     (void) instance;
+     size_t len = 0;
+     if (__USBGetHIDReport) {
+@@ -111,7 +111,7 @@
+ }
+ 
+ static uint8_t *usbd_desc_cfg = nullptr;
+-const uint8_t *tud_descriptor_configuration_cb(uint8_t index) {
++__attribute__((weak)) const uint8_t *tud_descriptor_configuration_cb(uint8_t index) {
+     (void)index;
+     return usbd_desc_cfg;
+ }
+@@ -227,7 +227,7 @@
+ 	}
+ }
+ 
+-const uint16_t *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
++__attribute__((weak)) const uint16_t *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
+     (void) langid;
+ #define DESC_STR_MAX (33)
+     static uint16_t desc_str[DESC_STR_MAX];
+@@ -287,7 +287,7 @@
+ }
+ #endif
+ 
+-void _usbfs_interrupt_handler(void)
++__attribute__((weak)) void _usbfs_interrupt_handler(void)
+ {
+   IRQn_Type irq = R_FSP_CurrentIrqGet();
+   R_BSP_IrqStatusClear(irq);
+@@ -387,11 +387,17 @@
+ #ifdef BOARD_TUH_RHPORT
+     assert(BOARD_TUD_RHPORT != BOARD_TUH_RHPORT); 
+     /* init host port */
+-    tuh_init(BOARD_TUH_RHPORT);
++    {
++      tusb_rhport_init_t rh_init = { .role = TUSB_ROLE_HOST, .speed = TUSB_SPEED_FULL };
++      tuh_rhport_init(BOARD_TUH_RHPORT, &rh_init);
++    }
+ #endif
+ 
+     /* init device port*/
+-    tud_init(BOARD_TUD_RHPORT);
++    {
++      tusb_rhport_init_t rh_init = { .role = TUSB_ROLE_DEVICE, .speed = TUSB_SPEED_FULL };
++      tud_rhport_init(BOARD_TUD_RHPORT, &rh_init);
++    }
+ 
+     usb_post_initialization();
+ 

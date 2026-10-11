@@ -1,0 +1,35 @@
+{
+  "packages": [
+    {
+      "name": "unor4tinyusb",
+      "maintainer": "controllercustom",
+      "website": "https://github.com/controllercustom/UnoR4-tinyusb",
+      "email": "controllercustom@users.noreply.github.com",
+      "help": { "online": "https://github.com/controllercustom/UnoR4-tinyusb/issues" },
+      "platforms": [
+        {
+          "name": "UnoR4 TinyUSB Boards",
+          "architecture": "renesas_uno",
+          "version": "0.5.0",
+          "category": "contributed",
+          "url": "https://github.com/controllercustom/UnoR4-tinyusb/releases/download/v0.5.0/unor4tinyusb-renesas_uno-0.5.0.tar.gz",
+          "archiveFileName": "unor4tinyusb-renesas_uno-0.5.0.tar.gz",
+          "checksum": "SHA-256:b8faa1b5e078493f34cf1b7f8b5638494d12d92737ec4f13259f6eeb1469cfba",
+          "size": "14675682",
+          "help": { "online": "https://github.com/controllercustom/UnoR4-tinyusb/issues" },
+          "boards": [
+            { "name": "UNO R4 Minima (TinyUSB)" },
+            { "name": "Nano R4 (TinyUSB)" }
+          ],
+          "toolsDependencies": [
+            { "packager": "arduino", "name": "arm-none-eabi-gcc", "version": "7-2017q4" },
+            { "packager": "arduino", "name": "bossac", "version": "1.9.1-arduino5" },
+            { "packager": "arduino", "name": "dfu-util", "version": "0.11.0-arduino5" },
+            { "packager": "arduino", "name": "openocd", "version": "0.11.0-arduino2" }
+          ]
+        }
+      ],
+      "tools": []
+    }
+  ]
+}

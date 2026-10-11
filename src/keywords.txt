@@ -1,0 +1,34 @@
+#######################################
+# Syntax Coloring Map For UnoR4-tinyusb
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+UnoR4TinyUSB	KEYWORD1
+UnoR4TinyUSBMode	KEYWORD1
+UNOR4_TINYUSB_MODE_UNINITIALIZED	KEYWORD1
+UNOR4_TINYUSB_MODE_DEVICE	KEYWORD1
+UNOR4_TINYUSB_MODE_HOST	KEYWORD1
+UNOR4_TINYUSB_CONSOLE	KEYWORD1
+UNOR4_TINYUSB_BAUD	KEYWORD1
+UNOR4_TINYUSB_BOARD_R4	KEYWORD1
+
+#######################################
+# Sketch Functions (KEYWORD2)
+#######################################
+
+tud_arduino_init	KEYWORD2
+tud_arduino_task	KEYWORD2
+tuh_arduino_init	KEYWORD2
+tuh_arduino_init_forced_fs	KEYWORD2
+tuh_arduino_poll	KEYWORD2
+arduino_tinyusb_probe	KEYWORD2
+arduino_tinyusb_get_mode	KEYWORD2
+arduino_tinyusb_set_mode	KEYWORD2
+
+#######################################
+# Classes and Methods (OBLIGATION)
+#######################################
+

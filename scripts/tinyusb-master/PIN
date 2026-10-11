@@ -1,0 +1,64 @@
+TinyUSB vendored sources — trimmed copy for the Arduino Renesas RA4M1 core
+(Uno R4 Minima / Nano R4). Installed into the core by
+scripts/patch_renesas_core.{sh,macos.sh,windows.ps1}, which copies every entry
+except PIN, SHA256SUMS and VERSION.
+
+Upstream: https://github.com/hathach/tinyusb
+Ref:      master
+Commit:   e20482387575da72b11d84ed008b25a28e068a01
+Date:     2026-10-08
+Subject:  rp2040/hcd: abort EPX transfers and release the buffer of a failed one (#4166)
+
+TRIMMED: device + host stacks and every class driver the R4 can host or
+expose. Kept: audio (device+host), cdc (+ serial ftdi_sio/cp210x/pl2303/ch34x),
+dfu + dfu_rt, hid, midi + midi2, msc, net (ncm/ecm_rndis), printer
+(device+host), usbtmc, vendor. Dropped: bth, mtp, video, typec, and every
+portable/ vendor tree except renesas/rusb2.
+
+LOCAL DEVIATIONS FROM UPSTREAM (all bench-proven on R4 hardware)
+--------------------------------------------------------------
+portable/renesas/rusb2/hcd_rusb2.c
+  - process_pipe0_xfer() OUT data stage: re-assert DCPCFG.DIR=1. hcd_setup_send()
+    sets DIR from bmRequestType but it is cleared before the data stage runs,
+    so the hardware issues an IN token mid-transfer and vendor OUT control
+    transfers with data (CP2102 SET_BAUDRATE) stall. Also drops the BSTS
+    assert, which fired spuriously, and inverts the USBREQ direction test.
+  - process_pipe0_xfer() ZLP branch: set PID=NAK instead of asserting it.
+    PID is still BUF after an OUT data stage, so the ACK stage of a control
+    OUT transfer with data was never submitted (transfer hung).
+  - dcd/hcd SACK ISR: set PID=NAK before handing the data stage to
+    process_pipe0_xfer(). Without it the hardware can issue a token before the
+    FIFO is populated, firing BRDY with stale pipe state (remaining=0).
+  All three are still absent upstream.
+
+host/usbh.c
+  - usbh_control_xfer_cb(): drop completions whose endpoint does not match the
+    outstanding stage. Under a backlogged event queue a stale DATA completion
+    surfaces during a later EP0 transfer, and the single shared control slot
+    cannot tell them apart (observed: 8B/9B ghosts consumed as the data of a
+    62B RANGE read, killing audio mount).
+  - PRINTER class driver table entry (backport; the driver is absent upstream).
+
+class/printer/printer_host.{c,h}
+  - Backport. The whole PRINTER host driver is absent upstream as of this
+    commit; only the device side exists. Backported from TinyUSB_Arduino.
+
+class/msc/msc_host.c
+  - Per-LUN Test-Unit-Ready + Read-Capacity walk during config, bounded to
+    5 Request-Sense retries (MSC_SENSE_MAX_RETRIES). Upstream probes only LUN 0
+    and retries TUR unbounded, so a multi-LUN reader with an empty slot hangs
+    the mount forever. max_lun is clamped to CFG_TUH_MSC_MAXLUN.
+  - Mount fires once every LUN has been probed, including when none is ready,
+    so hot-inserted media and an app-driven rescan still work.
+  - tuh_msc_scsi_command(): reject unless the stage machine is IDLE. Issuing a
+    CBW mid-flight overwrites the in-flight command's buffer/callback/stage.
+  - READ_CAPACITY_10 completions refresh capacity[lun] for app-initiated reads
+    too, not just the config-time probe.
+  Upstream's chunked data stage (MSCH_DATA_XFER_MAX) is preserved as-is.
+
+class/cdc/cdc_host.c
+  - make_new_itf() initialises line coding to 8N1 @9600. Upstream zero-inits it,
+    and the PL2303 driver silently rejects a zero data_bits, so the port never
+    opens after a bare tuh_cdc_set_baudrate().
+
+License: MIT (upstream). See LICENSE in the repository root.
